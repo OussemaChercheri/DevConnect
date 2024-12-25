@@ -1,6 +1,6 @@
 import express from "express";
 import { signup, login, logout, getCurrentUser, githubLogin, githubCallback, googleLogin, googleCallback } from '../controllers/auth.controller.js';
-import { protectedRoute }from "../middleware/auth.middleware.js";
+import { protectRoute }from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
 
-router.get("/me", protectedRoute, getCurrentUser );
+router.get("/me", protectRoute, getCurrentUser );
 
 router.get("/github", githubLogin);
 router.get("/github/callback", githubCallback); 

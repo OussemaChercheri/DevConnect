@@ -3,65 +3,65 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendWelcomeEmail } from "../emails/emailHandlers.js";
 import passport from "passport";
-import "../strategys/GitHubStrategy.js";
 import "../strategys/GoogleStrategy.js";
+import "../strategys/GitHubStrategy.js";
+
 export const signup = async (req, res) => {
-    try {
-        const { name, username, email, password} = req.body;
-        const existingEmail = await User.findOne({ email });
-        if (existingEmail) {
-            return res.status(400).json({ message: "Email already exists" });
-        }
-        
-        const existingUsername = await User.findOne({ username });
-        if (existingUsername) {
-            return res.status(400).json({ message: "Username already exists" });
-        }
+	try {
+		const { name, username, email, password } = req.body;
 
-        if (password.length < 6) {
-            return res.status(400).json({ message: "Password must be at least 6 characters long" });
-        }
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+		if (!name || !username || !email || !password) {
+			return res.status(400).json({ message: "All fields are required" });
+		}
+		const existingEmail = await User.findOne({ email });
+		if (existingEmail) {
+			return res.status(400).json({ message: "Email already exists" });
+		}
 
-        const user = new User({
-            name,
-            username,
-            email,
-            password: hashedPassword
-        });
+		const existingUsername = await User.findOne({ username });
+		if (existingUsername) {
+			return res.status(400).json({ message: "Username already exists" });
+		}
 
-        await user.save();
+		if (password.length < 6) {
+			return res.status(400).json({ message: "Password must be at least 6 characters" });
+		}
 
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(password, salt);
 
-        res.cookie("token", token, { 
-            httpOnly: true, // prevent XSS attack
-            maxAge: 3 * 24 * 60 * 60 * 1000,
-            sameSite:"strict", // prevent CRSF attack
-            secure: process.env.NODE_ENV === "production", // prevent man-in-the-middle attack
-        });
+		const user = new User({
+			name,
+			email,
+			password: hashedPassword,
+			username,
+		});
 
-        res.status(201).json({ message: "User created successfully" });
+		await user.save();
 
-        const profileUrl = process.env.CLIENT_URL + "/profile/" + user.username;
+		const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
 
+		res.cookie("jwt-linkedin", token, {
+			httpOnly: true, // prevent XSS attack
+			maxAge: 3 * 24 * 60 * 60 * 1000,
+			sameSite: "strict", // prevent CSRF attacks,
+			secure: process.env.NODE_ENV === "production", // prevents man-in-the-middle attacks
+		});
 
-        try {
-            await sendWelcomeEmail(user.email, user.name, profileUrl);
-        } catch (emailError) {
-            console.error("Error sending welcome email: ", emailError);
-            
-        }
+		res.status(201).json({ message: "User registered successfully" });
 
+		const profileUrl = process.env.CLIENT_URL + "/profile/" + user.username;
 
-    } catch (error) {
-        console.log("Error in signup: ", error.message);
-        res.status(500).json({ message: "Internal server error" });
-        
-        
-    }
-}
+		try {
+			await sendWelcomeEmail(user.email, user.name, profileUrl);
+		} catch (emailError) {
+			console.error("Error sending welcome Email", emailError);
+		}
+	} catch (error) {
+		console.log("Error in signup: ", error.message);
+		res.status(500).json({ message: "Internal server error" });
+	}
+};
 
 export const login = async (req, res) => {
 	try {
@@ -81,7 +81,7 @@ export const login = async (req, res) => {
 
 		// Create and send token
 		const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
-		await res.cookie("token", token, {
+		await res.cookie("jwt-linkedin", token, {
 			httpOnly: true,
 			maxAge: 3 * 24 * 60 * 60 * 1000,
 			sameSite: "strict",
@@ -96,9 +96,9 @@ export const login = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-    res.clearCookie("token");
-    res.json({ message: "Logged out successfuly" });
-}
+	res.clearCookie("jwt-linkedin");
+	res.json({ message: "Logged out successfully" });
+};
 
 export const getCurrentUser = async (req, res) => {
 	try {
@@ -108,7 +108,6 @@ export const getCurrentUser = async (req, res) => {
 		res.status(500).json({ message: "Server error" });
 	}
 };
-
 export const githubLogin = passport.authenticate("github", { scope: ["user:email"] });
 
 export const githubCallback = (req, res, next) => {
@@ -131,7 +130,7 @@ export const githubCallback = (req, res, next) => {
             });
 
             // Use dynamic redirection if a `redirectUrl` query param exists
-            const redirectUrl = req.query.redirectUrl || "/home";
+            const redirectUrl = req.query.redirectUrl || "/";
             const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 
             // Redirect to the dynamic or default route
@@ -165,7 +164,7 @@ export const googleCallback = (req, res, next) => {
             });
 
             // Use dynamic redirection if a `redirectUrl` query param exists
-            const redirectUrl = req.query.redirectUrl || "/home";
+            const redirectUrl = req.query.redirectUrl || "/";
             const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 
             // Redirect to the dynamic or default route

@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
-export const protectedRoute = async (req, res, next) => {
-    try {
-		const token = req.cookies["token"];
+export const protectRoute = async (req, res, next) => {
+	try {
+		const token = req.cookies["jwt-linkedin"];
 
 		if (!token) {
 			return res.status(401).json({ message: "Unauthorized - No Token Provided" });
@@ -27,4 +27,4 @@ export const protectedRoute = async (req, res, next) => {
 		console.log("Error in protectRoute middleware:", error.message);
 		res.status(500).json({ message: "Internal server error" });
 	}
-}
+};

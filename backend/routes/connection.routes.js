@@ -1,5 +1,5 @@
 import express from "express";
-import { protectedRoute } from "../middleware/auth.middleware.js";
+import { protectRoute } from "../middleware/auth.middleware.js";
 import {
 	acceptConnectionRequest,
 	getConnectionRequests,
@@ -12,14 +12,14 @@ import {
 
 const router = express.Router();
 
-router.post("/request/:userId", protectedRoute, sendConnectionRequest);
-router.put("/accept/:requestId", protectedRoute, acceptConnectionRequest);
-router.put("/reject/:requestId", protectedRoute, rejectConnectionRequest);
+router.post("/request/:userId", protectRoute, sendConnectionRequest);
+router.put("/accept/:requestId", protectRoute, acceptConnectionRequest);
+router.put("/reject/:requestId", protectRoute, rejectConnectionRequest);
 // Get all connection requests for the current user
-router.get("/requests", protectedRoute, getConnectionRequests);
+router.get("/requests", protectRoute, getConnectionRequests);
 // Get all connections for a user
-router.get("/", protectedRoute, getUserConnections);
-router.delete("/:userId", protectedRoute, removeConnection);
-router.get("/status/:userId", protectedRoute, getConnectionStatus);
+router.get("/", protectRoute, getUserConnections);
+router.delete("/:userId", protectRoute, removeConnection);
+router.get("/status/:userId", protectRoute, getConnectionStatus);
 
 export default router;
