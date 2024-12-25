@@ -2,7 +2,9 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendWelcomeEmail } from "../emails/emailHandlers.js";
-
+import passport from "passport";
+import "../strategys/GitHubStrategy.js";
+import "../strategys/GoogleStrategy.js";
 export const signup = async (req, res) => {
     try {
         const { name, username, email, password} = req.body;
@@ -106,3 +108,71 @@ export const getCurrentUser = async (req, res) => {
 		res.status(500).json({ message: "Server error" });
 	}
 };
+
+export const githubLogin = passport.authenticate("github", { scope: ["user:email"] });
+
+export const githubCallback = (req, res, next) => {
+    passport.authenticate("github", async (err, user, info) => {
+        if (err || !user) {
+            console.error("GitHub authentication error:", err || "No user found");
+            return res.status(400).json({ message: "GitHub authentication failed" });
+        }
+
+        try {
+            // Generate a JWT token for the authenticated user
+            const token = jwt.sign({ userId: user.githubId }, process.env.JWT_SECRET, { expiresIn: "3d" });
+
+            // Set the cookie for authentication
+            res.cookie("token", token, {
+                httpOnly: true,
+                maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days in milliseconds
+                sameSite: "strict",
+                secure: process.env.NODE_ENV === "production",
+            });
+
+            // Use dynamic redirection if a `redirectUrl` query param exists
+            const redirectUrl = req.query.redirectUrl || "/home";
+            const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+
+            // Redirect to the dynamic or default route
+            res.redirect(`${clientUrl}${redirectUrl}`);
+        } catch (error) {
+            console.error("Error during GitHub callback:", error.message);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    })(req, res, next);
+};
+
+export const googleLogin = passport.authenticate("google", { scope: ["profile", "email"] });
+
+export const googleCallback = (req, res, next) => {
+    passport.authenticate("google", async (err, user, info) => {
+        if (err || !user) {
+            console.error("Google authentication error:", err || "No user found");
+            return res.status(400).json({ message: "Google authentication failed" });
+        }
+
+        try {
+            // Generate a JWT token for the authenticated user
+            const token = jwt.sign({ userId: user.googleId }, process.env.JWT_SECRET, { expiresIn: "3d" });
+
+            // Set the cookie for authentication
+            res.cookie("token", token, {
+                httpOnly: true,
+                maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days in milliseconds
+                sameSite: "strict",
+                secure: process.env.NODE_ENV === "production",
+            });
+
+            // Use dynamic redirection if a `redirectUrl` query param exists
+            const redirectUrl = req.query.redirectUrl || "/home";
+            const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+
+            // Redirect to the dynamic or default route
+            res.redirect(`${clientUrl}${redirectUrl}`);
+        } catch (error) {
+            console.error("Error during Google callback:", error.message);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    })(req, res, next);
+}
