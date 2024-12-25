@@ -8,7 +8,7 @@ import { Routes, Navigate } from 'react-router-dom';
 import toast from "react-hot-toast";
 import {axiosInstance} from './lib/axios'
 import Profile from './Page/Profile/Profile'
-import Register from './Component/auth/register'
+import Register from './Component/auth/Register'
 import Login from './Component/auth/login'
 import AddPost from './Component/AddPost/AddPost'
 import Notifications from './Component/notification/Notification'
